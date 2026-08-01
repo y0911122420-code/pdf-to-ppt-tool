@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF 轉 PPT 工具｜免費線上轉檔，檔案不上傳伺服器</title>
+<meta name="description" content="免費線上 PDF 轉 PPT 簡報工具。把 PDF 每一頁轉成投影片，整個轉換過程都在你的瀏覽器裡完成，檔案不會上傳到任何伺服器，手機電腦都能用。">
+<meta name="theme-color" content="#0F1319">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234E5AD6'/%3E%3Ctext x='50' y='62' font-size='42' text-anchor='middle' fill='white' font-family='Arial,sans-serif' font-weight='bold'%3EP2P%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0F1319;--surface:#19202B;--surface-2:#141A23;
+    --ink:#E8ECF3;--ink-soft:#A2ACBC;--ink-faint:#6E7888;--line:#28313F;
+    --brand:#8E9AFF;--brand-strong:#AEB6FF;--brand-bg:#4E5AD6;--brand-bg-hover:#5F6BE9;--brand-soft:#1F2746;
+    --ok:#5BD2A4;--warn:#FF8585;--warn-soft:#3A2329;
+    --radius:14px;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);--maxw:680px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.65;font-size:16px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 16px}
+  a{color:var(--brand)}
+
+  header.site{background:linear-gradient(180deg,#1A2230,#10151D);border-bottom:1px solid var(--line);padding:22px 0 18px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .mark{width:38px;height:38px;border-radius:10px;flex:0 0 auto;background:var(--brand-bg);color:#fff;
+    display:grid;place-items:center;font-weight:800;font-size:11px;letter-spacing:.5px;line-height:1.05;text-align:center}
+  .brand h1{font-size:19px;margin:0;font-weight:800;letter-spacing:.2px}
+  .brand p{margin:2px 0 0;font-size:12.5px;color:var(--ink-soft)}
+
+  main{padding:20px 0 8px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 18px;margin-bottom:16px}
+  .card h2{font-size:17px;margin:0 0 4px;font-weight:800}
+  .card .lead{margin:0 0 16px;color:var(--ink-soft);font-size:13.5px}
+
+  .dropzone{border:2px dashed var(--line);border-radius:12px;padding:34px 16px;text-align:center;cursor:pointer;transition:.15s;background:var(--surface-2)}
+  .dropzone:hover,.dropzone.drag{border-color:var(--brand);background:var(--brand-soft)}
+  .dropzone .icon{font-size:34px;margin-bottom:8px}
+  .dropzone .t1{font-weight:700;font-size:15px}
+  .dropzone .t2{font-size:12.5px;color:var(--ink-faint);margin-top:4px}
+
+  .file-info{display:none;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-top:12px}
+  .file-info.show{display:flex}
+  .file-info .fi-icon{font-size:22px;flex:0 0 auto}
+  .file-info .fi-body{flex:1;min-width:0}
+  .file-info .name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .file-info .meta{font-size:12px;color:var(--ink-faint);margin-top:1px}
+
+  .field{margin:16px 0}
+  label{display:block;font-size:13.5px;font-weight:600;margin-bottom:6px;color:var(--ink)}
+  .seg{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:4px}
+  .seg button{flex:1;border:0;background:transparent;padding:9px;border-radius:999px;font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;font-family:inherit}
+  .seg button[aria-pressed="true"]{background:var(--brand-soft);color:var(--brand-strong)}
+
+  .btn{width:100%;border:0;background:var(--brand-bg);color:#fff;font-size:16px;font-weight:700;padding:13px;border-radius:11px;cursor:pointer;font-family:inherit;transition:.15s}
+  .btn:hover:not(:disabled){background:var(--brand-bg-hover)}
+  .btn:active:not(:disabled){transform:translateY(1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  .progress-wrap{margin-top:16px;display:none}
+  .progress-wrap.show{display:block}
+  .progress-track{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;height:10px;overflow:hidden}
+  .progress-bar{height:100%;background:var(--brand-bg);width:0%;transition:width .2s ease}
+  .progress-text{font-size:12.5px;color:var(--ink-soft);margin-top:8px;text-align:center}
+
+  .result{margin-top:16px;border-top:1px dashed var(--line);padding-top:16px;display:none;text-align:center}
+  .result.show{display:block}
+  .result .ok{font-size:15px;font-weight:700;color:var(--ok)}
+  .result .sub{font-size:12.5px;color:var(--ink-faint);margin-top:4px}
+
+  .err{display:none;margin-top:12px;background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.55}
+  .err.show{display:block}
+
+  .note{font-size:12.5px;color:var(--ink-faint);margin-top:14px;line-height:1.6}
+  .note b{color:var(--ink-soft)}
+
+  .content{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px;margin-bottom:16px}
+  .content h2{font-size:16px;margin:0 0 10px}
+  .content h3{font-size:14px;margin:14px 0 4px;color:var(--brand-strong)}
+  .content p{margin:0 0 8px;font-size:13.5px;color:var(--ink-soft)}
+
+  footer{border-top:1px solid var(--line);margin-top:8px;padding:22px 0 40px;color:var(--ink-faint);font-size:12.5px;text-align:center}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark">PDF<br>→PPT</div>
+      <div>
+        <h1>PDF 轉 PPT 工具</h1>
+        <p>免費線上轉檔 · 全程在瀏覽器完成 · 檔案不上傳</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+    <div class="card">
+      <h2>選擇要轉換的 PDF</h2>
+      <p class="lead">上傳 PDF 後，會把每一頁轉成一張投影片圖片，打包成 .pptx 檔案讓你下載。轉換全部在你的裝置上執行，檔案不會傳送到任何伺服器。</p>
+
+      <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="選擇或拖曳 PDF 檔案">
+        <div class="icon">📄</div>
+        <div class="t1">點一下選擇 PDF，或把檔案拖曳到這裡</div>
+        <div class="t2">支援 .pdf，檔案僅在本機處理</div>
+      </div>
+      <input type="file" id="file-input" accept="application/pdf,.pdf" hidden>
+
+      <div class="file-info" id="file-info">
+        <div class="fi-icon">📄</div>
+        <div class="fi-body">
+          <div class="name" id="fi-name">—</div>
+          <div class="meta" id="fi-meta">—</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>畫質</label>
+        <div class="seg" id="quality-seg">
+          <button type="button" aria-pressed="true" data-q="standard">標準（檔案較小）</button>
+          <button type="button" aria-pressed="false" data-q="high">高畫質（檔案較大）</button>
+        </div>
+      </div>
+
+      <button class="btn" id="convert-btn" disabled>轉換成 PPT</button>
+
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="progress-text" id="progress-text">準備中…</div>
+      </div>
+
+      <div class="err" id="err-box"></div>
+
+      <div class="result" id="result">
+        <div class="ok">✅ 轉換完成，檔案已開始下載</div>
+        <div class="sub" id="result-sub"></div>
+      </div>
+
+      <p class="note"><b>提醒：</b>轉出的每一頁投影片是該頁 PDF 的「圖片」，畫面會跟原本 PDF 一模一樣，但圖片裡的文字無法在 PowerPoint 裡直接編輯（就像貼上一張照片）。如果你需要的是可編輯文字的簡報，建議另外用「複製 PDF 文字」的方式手動貼進 PowerPoint。</p>
+    </div>
+
+    <div class="content">
+      <h2>常見問題</h2>
+      <h3>我的檔案會被上傳嗎？</h3>
+      <p>不會。這個工具完全在你的瀏覽器裡執行 PDF 解析與 PPT 產生，檔案不會離開你的裝置，也不會被儲存在任何伺服器上。</p>
+      <h3>轉出來的 PPT 可以編輯文字嗎？</h3>
+      <p>不行。每一頁會被轉成一張畫面完全一致的圖片再放進投影片，適合直接簡報放映或列印，但無法像一般 PPT 一樣點選、修改文字。</p>
+      <h3>可以轉幾頁？檔案會不會很大？</h3>
+      <p>理論上沒有頁數限制，但頁數越多、畫質選得越高，轉換耗時與產生的 .pptx 檔案就越大，建議先用「標準」畫質測試。</p>
+      <h3>支援哪些瀏覽器？</h3>
+      <p>建議使用新版 Chrome、Edge、Safari 或 Firefox。部分舊版瀏覽器可能不支援轉換所需的功能。</p>
+    </div>
+  </main>
+
+  <footer>
+    所有轉換皆在你的裝置本機完成，不會上傳或保存你的檔案。
+  </footer>
+</div>
+
+<script src="vendor/pdfjs/pdf.min.js"></script>
+<script src="vendor/pptxgenjs/pptxgen.bundle.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $ = s => document.querySelector(s);
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
+
+  const dropzone = $('#dropzone');
+  const fileInput = $('#file-input');
+  const fileInfo = $('#file-info');
+  const fiName = $('#fi-name');
+  const fiMeta = $('#fi-meta');
+  const qualitySeg = $('#quality-seg');
+  const convertBtn = $('#convert-btn');
+  const progressWrap = $('#progress-wrap');
+  const progressBar = $('#progress-bar');
+  const progressText = $('#progress-text');
+  const errBox = $('#err-box');
+  const result = $('#result');
+  const resultSub = $('#result-sub');
+
+  let currentFile = null;
+  let currentPdf = null;
+  let quality = 'standard';
+
+  function hideErr(){ errBox.classList.remove('show'); errBox.textContent = ''; }
+  function showErr(msg){ errBox.textContent = msg; errBox.classList.add('show'); }
+  function hideResult(){ result.classList.remove('show'); }
+
+  qualitySeg.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-q]');
+    if (!btn) return;
+    quality = btn.dataset.q;
+    qualitySeg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+  });
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+  fileInput.addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (f) loadFile(f);
+    fileInput.value = '';
+  });
+
+  async function loadFile(file){
+    hideErr();
+    hideResult();
+    convertBtn.disabled = true;
+    currentPdf = null;
+
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
+      showErr('請選擇 PDF 檔案（.pdf）。');
+      fileInfo.classList.remove('show');
+      return;
+    }
+
+    currentFile = file;
+    fileInfo.classList.add('show');
+    fiName.textContent = file.name;
+    fiMeta.textContent = '讀取中…';
+
+    try {
+      const buf = await file.arrayBuffer();
+      const task = pdfjsLib.getDocument({ data: buf });
+      currentPdf = await task.promise;
+      const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+      fiMeta.textContent = `共 ${currentPdf.numPages} 頁 · ${sizeMB} MB`;
+      convertBtn.disabled = false;
+    } catch (err) {
+      currentPdf = null;
+      fileInfo.classList.remove('show');
+      if (err && err.name === 'PasswordException') {
+        showErr('這份 PDF 有密碼保護，請先移除密碼後再上傳。');
+      } else {
+        showErr('無法讀取這份 PDF，檔案可能已損毀或格式不支援，請換一個檔案試試。');
+      }
+    }
+  }
+
+  convertBtn.addEventListener('click', async () => {
+    if (!currentPdf) return;
+    hideErr();
+    hideResult();
+    convertBtn.disabled = true;
+    progressWrap.classList.add('show');
+
+    const scale = quality === 'high' ? 3 : 2;
+    const n = currentPdf.numPages;
+
+    try {
+      const pptx = new PptxGenJS();
+      const firstPage = await currentPdf.getPage(1);
+      const firstViewport = firstPage.getViewport({ scale: 1 });
+      const aspect = firstViewport.width / firstViewport.height;
+      const LAYOUT_W = 13.333;
+      const LAYOUT_H = +(LAYOUT_W / aspect).toFixed(3);
+      pptx.defineLayout({ name: 'PDF_SRC_LAYOUT', width: LAYOUT_W, height: LAYOUT_H });
+      pptx.layout = 'PDF_SRC_LAYOUT';
+
+      for (let i = 1; i <= n; i++) {
+        progressText.textContent = `轉換中… 第 ${i} / ${n} 頁`;
+        progressBar.style.width = `${Math.round(((i - 1) / n) * 100)}%`;
+
+        const page = await currentPdf.getPage(i);
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+        const pageAspect = viewport.width / viewport.height;
+        let w = LAYOUT_W, h = +(LAYOUT_W / pageAspect).toFixed(3), x = 0, y = 0;
+        if (h > LAYOUT_H) {
+          h = LAYOUT_H;
+          w = +(LAYOUT_H * pageAspect).toFixed(3);
+          x = +((LAYOUT_W - w) / 2).toFixed(3);
+        } else {
+          y = +((LAYOUT_H - h) / 2).toFixed(3);
+        }
+
+        const slide = pptx.addSlide();
+        slide.background = { color: 'FFFFFF' };
+        slide.addImage({ data: dataUrl, x, y, w, h });
+
+        canvas.width = 0;
+        canvas.height = 0;
+        page.cleanup && page.cleanup();
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      progressBar.style.width = '100%';
+      progressText.textContent = '正在產生 PPTX 檔案…';
+
+      const baseName = currentFile.name.replace(/\.pdf$/i, '') || 'presentation';
+      await pptx.writeFile({ fileName: `${baseName}.pptx` });
+
+      progressText.textContent = `完成！已產生 ${n} 頁投影片。`;
+      resultSub.textContent = `${baseName}.pptx · 共 ${n} 頁`;
+      result.classList.add('show');
+    } catch (err) {
+      console.error(err);
+      showErr('轉換過程發生錯誤，請重新嘗試；若檔案很大或頁數很多，可以先改選「標準」畫質或換一個較小的檔案測試。');
+    } finally {
+      convertBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
