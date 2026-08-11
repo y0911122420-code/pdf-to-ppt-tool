@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF 轉 PPT / 圖片轉 PDF 工具｜免費線上轉檔，檔案不上傳伺服器</title>
-<meta name="description" content="免費線上檔案轉換工具：PDF 轉 PPT 簡報、PNG/JPG 圖片轉 PDF。整個轉換過程都在你的瀏覽器裡完成，檔案不會上傳到任何伺服器，手機電腦都能用。">
+<title>PDF 轉 PPT / PDF 轉 Word / 圖片轉 PDF 工具｜免費線上轉檔，檔案不上傳伺服器</title>
+<meta name="description" content="免費線上檔案轉換工具：PDF 轉 PPT 簡報、PDF 轉 Word（可編輯文字）、PNG/JPG 圖片轉 PDF。整個轉換過程都在你的瀏覽器裡完成，檔案不會上傳到任何伺服器，手機電腦都能用。">
 <meta name="theme-color" content="#0F1319">
 <meta name="robots" content="index,follow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234E5AD6'/%3E%3Ctext x='50' y='62' font-size='42' text-anchor='middle' fill='white' font-family='Arial,sans-serif' font-weight='bold'%3EP2P%3C/text%3E%3C/svg%3E">
@@ -116,7 +116,7 @@
       <div class="mark">檔案<br>轉換</div>
       <div>
         <h1>檔案轉換工具</h1>
-        <p>免費線上轉檔 · 全程在瀏覽器完成 · 檔案不上傳</p>
+        <p>PDF → PPT／Word · 圖片 → PDF · 全程在瀏覽器完成 · 檔案不上傳</p>
       </div>
     </div>
   </div>
@@ -126,6 +126,7 @@
   <nav class="tabs">
     <div class="tabs-inner" role="tablist">
       <button class="tab" role="tab" aria-selected="true" data-tab="pdf2ppt">PDF → PPT</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="pdf2docx">PDF → Word</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="img2pdf">圖片 → PDF</button>
     </div>
   </nav>
@@ -185,6 +186,57 @@
         <p>不行。每一頁會被轉成一張畫面完全一致的圖片再放進投影片，適合直接簡報放映或列印，但無法像一般 PPT 一樣點選、修改文字。</p>
         <h3>可以轉幾頁？檔案會不會很大？</h3>
         <p>理論上沒有頁數限制，但頁數越多、畫質選得越高，轉換耗時與產生的 .pptx 檔案就越大，建議先用「標準」畫質測試。</p>
+        <h3>支援哪些瀏覽器？</h3>
+        <p>建議使用新版 Chrome、Edge、Safari 或 Firefox。部分舊版瀏覽器可能不支援轉換所需的功能。</p>
+      </div>
+    </section>
+
+    <!-- ====== PDF → Word ====== -->
+    <section class="panel" id="panel-pdf2docx">
+      <div class="card">
+        <h2>選擇要轉換的 PDF</h2>
+        <p class="lead">上傳 PDF 後，會擷取裡面的文字內容，重新組成一份可編輯文字的 .docx 檔案。轉換全部在你的裝置上執行，檔案不會傳送到任何伺服器。</p>
+
+        <div class="dropzone" id="docx-dropzone" role="button" tabindex="0" aria-label="選擇或拖曳 PDF 檔案">
+          <div class="icon">📝</div>
+          <div class="t1">點一下選擇 PDF，或把檔案拖曳到這裡</div>
+          <div class="t2">支援 .pdf，檔案僅在本機處理</div>
+        </div>
+        <input type="file" id="docx-file-input" accept="application/pdf,.pdf" hidden>
+
+        <div class="file-info" id="docx-file-info">
+          <div class="fi-icon">📄</div>
+          <div class="fi-body">
+            <div class="name" id="docx-fi-name">—</div>
+            <div class="meta" id="docx-fi-meta">—</div>
+          </div>
+        </div>
+
+        <button class="btn" id="docx-convert-btn" disabled>轉換成 Word</button>
+
+        <div class="progress-wrap" id="docx-progress-wrap">
+          <div class="progress-track"><div class="progress-bar" id="docx-progress-bar"></div></div>
+          <div class="progress-text" id="docx-progress-text">準備中…</div>
+        </div>
+
+        <div class="err" id="docx-err-box"></div>
+
+        <div class="result" id="docx-result">
+          <div class="ok">✅ 轉換完成，檔案已開始下載</div>
+          <div class="sub" id="docx-result-sub"></div>
+        </div>
+
+        <p class="note"><b>提醒：</b>這個工具是把 PDF 裡的文字「擷取」出來重新排成 Word 段落，文字可以直接點選、編輯。但原始的複雜排版（例如表格、多欄、圖文混排的精確位置）不一定能完全還原；如果某一頁完全沒有文字（例如掃描圖片），會改成直接插入該頁的圖片，並標註提醒。</p>
+      </div>
+
+      <div class="content">
+        <h2>常見問題</h2>
+        <h3>我的檔案會被上傳嗎？</h3>
+        <p>不會。文字擷取與 Word 檔案產生都在你的瀏覽器裡完成，檔案不會離開你的裝置，也不會被儲存在任何伺服器上。</p>
+        <h3>轉出來的排版會跟原本 PDF 一模一樣嗎？</h3>
+        <p>不會完全一樣。這個工具會依照文字大小概略判斷標題與內文，但無法完全還原表格、多欄排版或精確的圖文位置，適合用來「拿到可編輯的文字內容」，排版部分建議轉換後再自行微調。</p>
+        <h3>掃描檔或圖片型 PDF 可以用嗎？</h3>
+        <p>掃描檔本身沒有可擷取的文字，這個工具不會做文字辨識（OCR）。完全沒有文字的頁面會直接以圖片形式插入 Word，文字仍然無法編輯。</p>
         <h3>支援哪些瀏覽器？</h3>
         <p>建議使用新版 Chrome、Edge、Safari 或 Firefox。部分舊版瀏覽器可能不支援轉換所需的功能。</p>
       </div>
@@ -257,6 +309,7 @@
 <script src="vendor/pdfjs/pdf.min.js"></script>
 <script src="vendor/pptxgenjs/pptxgen.bundle.js"></script>
 <script src="vendor/jspdf/jspdf.umd.min.js"></script>
+<script src="vendor/docx/docx.umd.js"></script>
 <script>
 (function(){
   "use strict";
@@ -266,7 +319,7 @@
 
   /* ===== Tabs ===== */
   const tabs = document.querySelectorAll('.tab');
-  const panels = { pdf2ppt: $('#panel-pdf2ppt'), img2pdf: $('#panel-img2pdf') };
+  const panels = { pdf2ppt: $('#panel-pdf2ppt'), pdf2docx: $('#panel-pdf2docx'), img2pdf: $('#panel-img2pdf') };
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
@@ -427,6 +480,275 @@
       } catch (err) {
         console.error(err);
         showErr('轉換過程發生錯誤，請重新嘗試；若檔案很大或頁數很多，可以先改選「標準」畫質或換一個較小的檔案測試。');
+      } finally {
+        convertBtn.disabled = false;
+      }
+    });
+  })();
+
+  /* ===== PDF → Word ===== */
+  (function initPdf2Docx(){
+    const dropzone = $('#docx-dropzone');
+    const fileInput = $('#docx-file-input');
+    const fileInfo = $('#docx-file-info');
+    const fiName = $('#docx-fi-name');
+    const fiMeta = $('#docx-fi-meta');
+    const convertBtn = $('#docx-convert-btn');
+    const progressWrap = $('#docx-progress-wrap');
+    const progressBar = $('#docx-progress-bar');
+    const progressText = $('#docx-progress-text');
+    const errBox = $('#docx-err-box');
+    const result = $('#docx-result');
+    const resultSub = $('#docx-result-sub');
+
+    let currentFile = null;
+    let currentPdf = null;
+
+    function hideErr(){ errBox.classList.remove('show'); errBox.textContent = ''; }
+    function showErr(msg){ errBox.textContent = msg; errBox.classList.add('show'); }
+    function hideResult(){ result.classList.remove('show'); }
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+    });
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('drag');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) loadFile(f);
+    });
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0];
+      if (f) loadFile(f);
+      fileInput.value = '';
+    });
+
+    async function loadFile(file){
+      hideErr();
+      hideResult();
+      convertBtn.disabled = true;
+      currentPdf = null;
+
+      if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
+        showErr('請選擇 PDF 檔案（.pdf）。');
+        fileInfo.classList.remove('show');
+        return;
+      }
+
+      currentFile = file;
+      fileInfo.classList.add('show');
+      fiName.textContent = file.name;
+      fiMeta.textContent = '讀取中…';
+
+      try {
+        const buf = await file.arrayBuffer();
+        const task = pdfjsLib.getDocument({ data: buf });
+        currentPdf = await task.promise;
+        const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+        fiMeta.textContent = `共 ${currentPdf.numPages} 頁 · ${sizeMB} MB`;
+        convertBtn.disabled = false;
+      } catch (err) {
+        currentPdf = null;
+        fileInfo.classList.remove('show');
+        if (err && err.name === 'PasswordException') {
+          showErr('這份 PDF 有密碼保護，請先移除密碼後再上傳。');
+        } else {
+          showErr('無法讀取這份 PDF，檔案可能已損毀或格式不支援，請換一個檔案試試。');
+        }
+      }
+    }
+
+    async function extractPageLines(page){
+      // Group text items into visual lines by matching y-coordinate rather than
+      // trusting pdf.js's hasEOL flag, which some PDF producers (e.g. Chromium's
+      // own PDF export) set inconsistently and can bleed an unrelated item's
+      // font size into the wrong line.
+      const content = await page.getTextContent();
+      const Y_EPS = 1.5;
+      const lines = [];
+      let cur = null;
+      for (const item of content.items) {
+        if (typeof item.str !== 'string') continue;
+        const y = item.transform[5];
+        const x = item.transform[4];
+        const size = Math.hypot(item.transform[2], item.transform[3]) || item.height || 10;
+        if (cur && Math.abs(y - cur.y) <= Y_EPS) {
+          const gap = x - cur.endX;
+          if (gap > cur.size * 0.25 && cur.text && !/\s$/.test(cur.text) && item.str && !/^\s/.test(item.str)) {
+            cur.text += ' ';
+          }
+          cur.text += item.str;
+          cur.endX = x + (item.width || 0);
+          if (size > cur.size) cur.size = size;
+        } else {
+          if (cur) lines.push(cur);
+          cur = { text: item.str, y, size, endX: x + (item.width || 0) };
+        }
+      }
+      if (cur) lines.push(cur);
+      return lines.filter(l => l.text.trim() !== '');
+    }
+
+    function groupParagraphs(lines, bodySize){
+      const paras = [];
+      let curLines = [], curSizes = [];
+      let prevY = null, prevSize = null;
+      const flush = () => {
+        if (!curLines.length) return;
+        const text = curLines.join(' ').replace(/\s+/g, ' ').trim();
+        if (text) paras.push({ text, size: Math.max(...curSizes) });
+        curLines = []; curSizes = [];
+      };
+      for (const line of lines) {
+        const trimmed = line.text.replace(/\s+/g, ' ').trim();
+        if (!trimmed) { flush(); prevY = null; prevSize = null; continue; }
+        const headingish = line.size > bodySize * 1.15;
+        if (prevY !== null) {
+          const gap = prevY - line.y;
+          const lineHeight = (prevSize || line.size) * 1.7;
+          const prevHeadingish = prevSize !== null && prevSize > bodySize * 1.15;
+          if (gap > lineHeight || headingish !== prevHeadingish) flush();
+        }
+        curLines.push(trimmed);
+        curSizes.push(line.size);
+        prevY = line.y;
+        prevSize = line.size;
+      }
+      flush();
+      return paras;
+    }
+
+    function dataUrlToBytes(dataUrl){
+      const base64 = dataUrl.split(',')[1];
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    async function renderPageToImage(page){
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const MAX_W = 600;
+      let w = viewport.width, h = viewport.height;
+      if (w > MAX_W) { h = h * (MAX_W / w); w = MAX_W; }
+      const bytes = dataUrlToBytes(dataUrl);
+      canvas.width = 0;
+      canvas.height = 0;
+      return { bytes, width: Math.round(w), height: Math.round(h) };
+    }
+
+    convertBtn.addEventListener('click', async () => {
+      if (!currentPdf) return;
+      hideErr();
+      hideResult();
+      convertBtn.disabled = true;
+      progressWrap.classList.add('show');
+
+      const n = currentPdf.numPages;
+
+      try {
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun } = window.docx;
+
+        // Pass 1: extract lines for every page, figure out the document's body font size.
+        const perPageLines = [];
+        const allSizes = [];
+        for (let i = 1; i <= n; i++) {
+          progressText.textContent = `讀取文字中… 第 ${i} / ${n} 頁`;
+          progressBar.style.width = `${Math.round(((i - 1) / n) * 50)}%`;
+          const page = await currentPdf.getPage(i);
+          const lines = await extractPageLines(page);
+          perPageLines.push(lines);
+          for (const l of lines) allSizes.push(Math.round(l.size * 2) / 2);
+          page.cleanup && page.cleanup();
+          await new Promise(r => setTimeout(r, 0));
+        }
+
+        let bodySize = 12;
+        if (allSizes.length) {
+          const freq = new Map();
+          for (const s of allSizes) freq.set(s, (freq.get(s) || 0) + 1);
+          let best = null, bestCount = 0;
+          freq.forEach((count, size) => { if (count > bestCount) { bestCount = count; best = size; } });
+          bodySize = best || 12;
+        }
+
+        // Pass 2: build the document, falling back to a page image when a page has no text.
+        const children = [];
+        let anyText = false;
+        for (let i = 1; i <= n; i++) {
+          progressText.textContent = `組成 Word 中… 第 ${i} / ${n} 頁`;
+          progressBar.style.width = `${50 + Math.round((i / n) * 45)}%`;
+
+          const lines = perPageLines[i - 1];
+          const paras = groupParagraphs(lines, bodySize);
+          const pageBreakBefore = i > 1;
+
+          if (paras.length) {
+            anyText = true;
+            paras.forEach((p, idx) => {
+              let heading;
+              if (p.size >= bodySize * 1.8) heading = HeadingLevel.HEADING_1;
+              else if (p.size >= bodySize * 1.15) heading = HeadingLevel.HEADING_2;
+              children.push(new Paragraph({
+                heading,
+                pageBreakBefore: pageBreakBefore && idx === 0,
+                children: [new TextRun(p.text)],
+              }));
+            });
+          } else {
+            const page = await currentPdf.getPage(i);
+            const img = await renderPageToImage(page);
+            page.cleanup && page.cleanup();
+            children.push(new Paragraph({
+              pageBreakBefore,
+              children: [new TextRun({ text: '⚠️ 此頁未偵測到文字（可能是掃描圖片），已改為插入頁面圖片：', italics: true })],
+            }));
+            children.push(new Paragraph({
+              children: [new ImageRun({ data: img.bytes, transformation: { width: img.width, height: img.height }, type: 'jpg' })],
+            }));
+          }
+          await new Promise(r => setTimeout(r, 0));
+        }
+
+        if (!children.length) {
+          children.push(new Paragraph({ children: [new TextRun('（這份 PDF 沒有偵測到任何內容）')] }));
+        }
+
+        const doc = new Document({ sections: [{ children }] });
+
+        progressBar.style.width = '98%';
+        progressText.textContent = '正在產生 Word 檔案…';
+
+        const blob = await Packer.toBlob(doc);
+        const baseName = currentFile.name.replace(/\.pdf$/i, '') || 'document';
+        const fileName = `${baseName}.docx`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        progressBar.style.width = '100%';
+        progressText.textContent = `完成！已產生 ${n} 頁內容。`;
+        resultSub.textContent = anyText
+          ? `${fileName} · 共 ${n} 頁`
+          : `${fileName} · 共 ${n} 頁（未偵測到可擷取文字，內容以圖片保留）`;
+        result.classList.add('show');
+      } catch (err) {
+        console.error(err);
+        showErr('轉換過程發生錯誤，請重新嘗試；若檔案很大或頁數很多，可以先換一個較小的檔案測試。');
       } finally {
         convertBtn.disabled = false;
       }
