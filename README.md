@@ -29,3 +29,6 @@ python3 -m http.server 8080
 
 - `vendor/pdfjs/` — [pdf.js](https://github.com/mozilla/pdf.js) 3.11.174（Apache-2.0）
 - `vendor/pptxgenjs/` — [PptxGenJS](https://github.com/gitbrent/PptxGenJS) 3.12.0（MIT，內含 JSZip）
+- `vendor/jspdf/` — [jsPDF](https://github.com/parallax/jsPDF)（MIT）
+- `vendor/docx/` — [docx](https://github.com/dolanmiu/docx)（MIT）
+- `vendor/tesseract/` — [Tesseract.js](https://github.com/naptha/tesseract.js) 5.x（Apache-2.0），用於 PDF 轉 Word 時對掃描頁面做 OCR 文字辨識；內含繁體中文語言模型（`vendor/tesseract/lang-data/chi_tra.traineddata.gz`，來自 [tessdata_best](https://github.com/tesseract-ocr/tessdata_best)，Apache-2.0），OCR 全程離線執行，不需要額外連線。

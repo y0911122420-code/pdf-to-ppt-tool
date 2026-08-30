@@ -226,17 +226,17 @@
           <div class="sub" id="docx-result-sub"></div>
         </div>
 
-        <p class="note"><b>提醒：</b>這個工具是把 PDF 裡的文字「擷取」出來重新排成 Word 段落，文字可以直接點選、編輯。但原始的複雜排版（例如表格、多欄、圖文混排的精確位置）不一定能完全還原；如果某一頁完全沒有文字（例如掃描圖片），會改成直接插入該頁的圖片，並標註提醒。</p>
+        <p class="note"><b>提醒：</b>這個工具是把 PDF 裡的文字「擷取」出來重新排成 Word 段落，文字可以直接點選、編輯。但原始的複雜排版（例如表格、多欄、圖文混排的精確位置）不一定能完全還原；如果某一頁完全沒有文字層（例如掃描圖片），會自動改用 OCR 文字辨識，辨識成功的話一樣會變成可編輯文字（可能有辨識誤差，建議校對），若 OCR 也無法辨識，才會改成直接插入該頁的圖片。</p>
       </div>
 
       <div class="content">
         <h2>常見問題</h2>
         <h3>我的檔案會被上傳嗎？</h3>
-        <p>不會。文字擷取與 Word 檔案產生都在你的瀏覽器裡完成，檔案不會離開你的裝置，也不會被儲存在任何伺服器上。</p>
+        <p>不會。文字擷取、OCR 辨識與 Word 檔案產生都在你的瀏覽器裡完成，OCR 語言模型也內建在網站裡，不需要額外連線下載。PDF 檔案內容不會離開你的裝置，也不會被上傳或儲存在任何伺服器上。</p>
         <h3>轉出來的排版會跟原本 PDF 一模一樣嗎？</h3>
         <p>不會完全一樣。這個工具會依照文字大小概略判斷標題與內文，但無法完全還原表格、多欄排版或精確的圖文位置，適合用來「拿到可編輯的文字內容」，排版部分建議轉換後再自行微調。</p>
         <h3>掃描檔或圖片型 PDF 可以用嗎？</h3>
-        <p>掃描檔本身沒有可擷取的文字，這個工具不會做文字辨識（OCR）。完全沒有文字的頁面會直接以圖片形式插入 Word，文字仍然無法編輯。</p>
+        <p>可以。這種頁面本身沒有可擷取的文字，工具會自動用 OCR（文字辨識，目前為繁體中文）把圖片上的文字辨識出來變成可編輯文字；辨識需要一點時間，且準確度會受掃描品質、字體、版面影響，建議轉換後自行校對。如果 OCR 仍無法辨識出任何文字，該頁才會改以圖片形式保留。</p>
         <h3>支援哪些瀏覽器？</h3>
         <p>建議使用新版 Chrome、Edge、Safari 或 Firefox。部分舊版瀏覽器可能不支援轉換所需的功能。</p>
       </div>
@@ -310,6 +310,7 @@
 <script src="vendor/pptxgenjs/pptxgen.bundle.js"></script>
 <script src="vendor/jspdf/jspdf.umd.min.js"></script>
 <script src="vendor/docx/docx.umd.js"></script>
+<script src="vendor/tesseract/tesseract.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -629,8 +630,8 @@
       return bytes;
     }
 
-    async function renderPageToImage(page){
-      const viewport = page.getViewport({ scale: 2 });
+    async function renderPageToCanvas(page, scale){
+      const viewport = page.getViewport({ scale });
       const canvas = document.createElement('canvas');
       canvas.width = Math.ceil(viewport.width);
       canvas.height = Math.ceil(viewport.height);
@@ -638,14 +639,59 @@
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       await page.render({ canvasContext: ctx, viewport }).promise;
+      return canvas;
+    }
+
+    function canvasToDocxImage(canvas){
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       const MAX_W = 600;
-      let w = viewport.width, h = viewport.height;
+      let w = canvas.width, h = canvas.height;
       if (w > MAX_W) { h = h * (MAX_W / w); w = MAX_W; }
       const bytes = dataUrlToBytes(dataUrl);
-      canvas.width = 0;
-      canvas.height = 0;
       return { bytes, width: Math.round(w), height: Math.round(h) };
+    }
+
+    // Lazily spin up a single reusable Tesseract OCR worker (Traditional Chinese) for
+    // pages that have no extractable text layer (e.g. scanned pages). The language
+    // model is vendored locally (vendor/tesseract/lang-data), so OCR works fully
+    // offline just like the rest of the tool. If it ever fails or hangs, OCR is
+    // skipped for the rest of the conversion and scanned pages fall back to images
+    // instead of stalling forever.
+    function withTimeout(promise, ms, message){
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+      ]);
+    }
+
+    let ocrWorkerPromise = null;
+    let ocrDisabled = false;
+    function getOcrWorker(){
+      if (!ocrWorkerPromise) {
+        ocrWorkerPromise = withTimeout(
+          Tesseract.createWorker('chi_tra', Tesseract.OEM.LSTM_ONLY, {
+            workerPath: 'vendor/tesseract/worker.min.js',
+            corePath: 'vendor/tesseract/',
+            langPath: 'vendor/tesseract/lang-data/',
+          }),
+          45000,
+          'OCR 初始化逾時'
+        );
+      }
+      return ocrWorkerPromise;
+    }
+
+    async function ocrPage(canvas){
+      if (ocrDisabled) return '';
+      try {
+        const worker = await getOcrWorker();
+        const { data } = await withTimeout(worker.recognize(canvas), 60000, 'OCR 辨識逾時');
+        return (data && data.text || '').trim();
+      } catch (err) {
+        console.error('OCR failed, disabling OCR for the rest of this conversion:', err);
+        ocrDisabled = true;
+        return '';
+      }
     }
 
     convertBtn.addEventListener('click', async () => {
@@ -683,18 +729,21 @@
           bodySize = best || 12;
         }
 
-        // Pass 2: build the document, falling back to a page image when a page has no text.
+        // Pass 2: build the document. Pages with no text layer go through OCR first
+        // (e.g. scanned pages); only if OCR also fails do we fall back to an image.
         const children = [];
         let anyText = false;
+        let anyOcr = false;
+        let anyImageFallback = false;
         for (let i = 1; i <= n; i++) {
-          progressText.textContent = `組成 Word 中… 第 ${i} / ${n} 頁`;
-          progressBar.style.width = `${50 + Math.round((i / n) * 45)}%`;
+          progressBar.style.width = `${50 + Math.round(((i - 1) / n) * 45)}%`;
 
           const lines = perPageLines[i - 1];
           const paras = groupParagraphs(lines, bodySize);
           const pageBreakBefore = i > 1;
 
           if (paras.length) {
+            progressText.textContent = `組成 Word 中… 第 ${i} / ${n} 頁`;
             anyText = true;
             paras.forEach((p, idx) => {
               let heading;
@@ -707,18 +756,42 @@
               }));
             });
           } else {
+            progressText.textContent = `此頁無文字層，OCR 辨識中… 第 ${i} / ${n} 頁`;
             const page = await currentPdf.getPage(i);
-            const img = await renderPageToImage(page);
+            const canvas = await renderPageToCanvas(page, 2.5);
             page.cleanup && page.cleanup();
-            children.push(new Paragraph({
-              pageBreakBefore,
-              children: [new TextRun({ text: '⚠️ 此頁未偵測到文字（可能是掃描圖片），已改為插入頁面圖片：', italics: true })],
-            }));
-            children.push(new Paragraph({
-              children: [new ImageRun({ data: img.bytes, transformation: { width: img.width, height: img.height }, type: 'jpg' })],
-            }));
+
+            const ocrText = await ocrPage(canvas);
+            const ocrLines = ocrText.split(/\n+/).map(s => s.trim()).filter(Boolean);
+
+            if (ocrLines.length) {
+              anyText = true;
+              anyOcr = true;
+              ocrLines.forEach((lineText, idx) => {
+                children.push(new Paragraph({
+                  pageBreakBefore: pageBreakBefore && idx === 0,
+                  children: [new TextRun(lineText)],
+                }));
+              });
+            } else {
+              anyImageFallback = true;
+              const img = canvasToDocxImage(canvas);
+              children.push(new Paragraph({
+                pageBreakBefore,
+                children: [new TextRun({ text: '⚠️ 此頁未偵測到文字（OCR 也無法辨識，可能是圖片或掃描品質不佳），已改為插入頁面圖片：', italics: true })],
+              }));
+              children.push(new Paragraph({
+                children: [new ImageRun({ data: img.bytes, transformation: { width: img.width, height: img.height }, type: 'jpg' })],
+              }));
+            }
+            canvas.width = 0;
+            canvas.height = 0;
           }
           await new Promise(r => setTimeout(r, 0));
+        }
+
+        if (ocrWorkerPromise) {
+          try { (await ocrWorkerPromise).terminate(); } catch (e) { /* ignore */ }
         }
 
         if (!children.length) {
@@ -742,12 +815,17 @@
 
         progressBar.style.width = '100%';
         progressText.textContent = `完成！已產生 ${n} 頁內容。`;
-        resultSub.textContent = anyText
-          ? `${fileName} · 共 ${n} 頁`
-          : `${fileName} · 共 ${n} 頁（未偵測到可擷取文字，內容以圖片保留）`;
+        let note = '';
+        if (anyOcr && anyImageFallback) note = '（部分頁面經 OCR 辨識為文字，部分無法辨識已保留為圖片）';
+        else if (anyOcr) note = '（部分頁面經 OCR 自動辨識為文字，可能有辨識誤差，建議校對）';
+        else if (!anyText) note = '（未偵測到可擷取文字，內容以圖片保留）';
+        resultSub.textContent = `${fileName} · 共 ${n} 頁${note}`;
         result.classList.add('show');
       } catch (err) {
         console.error(err);
+        if (ocrWorkerPromise) {
+          try { (await ocrWorkerPromise).terminate(); } catch (e) { /* ignore */ }
+        }
         showErr('轉換過程發生錯誤，請重新嘗試；若檔案很大或頁數很多，可以先換一個較小的檔案測試。');
       } finally {
         convertBtn.disabled = false;
