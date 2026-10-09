@@ -226,17 +226,19 @@
           <div class="sub" id="docx-result-sub"></div>
         </div>
 
-        <p class="note"><b>提醒：</b>這個工具是把 PDF 裡的文字「擷取」出來重新排成 Word 段落，文字可以直接點選、編輯。但原始的複雜排版（例如表格、多欄、圖文混排的精確位置）不一定能完全還原；如果某一頁完全沒有文字層（例如掃描圖片），會自動改用 OCR 文字辨識，辨識成功的話一樣會變成可編輯文字（可能有辨識誤差，建議校對），若 OCR 也無法辨識，才會改成直接插入該頁的圖片。</p>
+        <p class="note"><b>提醒：</b>這個工具是把 PDF 裡的文字「擷取」出來重新排成 Word 段落與表格，文字可以直接點選、編輯；偵測到表格狀的內容（文字對齊成多欄的區塊）會轉成真正的 Word 表格，而不是純文字。但原始的複雜排版（例如多欄版面、圖文混排的精確位置、合併儲存格）不一定能完全還原；如果某一頁完全沒有文字層（例如掃描圖片），會自動改用 OCR 文字辨識，辨識成功的話一樣會變成可編輯文字（可能有辨識誤差，建議校對，且 OCR 目前無法還原表格），若 OCR 也無法辨識，才會改成直接插入該頁的圖片。</p>
       </div>
 
       <div class="content">
         <h2>常見問題</h2>
         <h3>我的檔案會被上傳嗎？</h3>
-        <p>不會。文字擷取、OCR 辨識與 Word 檔案產生都在你的瀏覽器裡完成，OCR 語言模型也內建在網站裡，不需要額外連線下載。PDF 檔案內容不會離開你的裝置，也不會被上傳或儲存在任何伺服器上。</p>
+        <p>不會。文字擷取、表格偵測、OCR 辨識與 Word 檔案產生都在你的瀏覽器裡完成，OCR 語言模型也內建在網站裡，不需要額外連線下載。PDF 檔案內容不會離開你的裝置，也不會被上傳或儲存在任何伺服器上。</p>
         <h3>轉出來的排版會跟原本 PDF 一模一樣嗎？</h3>
-        <p>不會完全一樣。這個工具會依照文字大小概略判斷標題與內文，但無法完全還原表格、多欄排版或精確的圖文位置，適合用來「拿到可編輯的文字內容」，排版部分建議轉換後再自行微調。</p>
+        <p>不會完全一樣。這個工具會依照文字大小概略判斷標題與內文，並嘗試把對齊成多欄的文字區塊轉成表格；但無法完全還原合併儲存格、多欄版面或精確的圖文位置，適合用來「拿到可編輯的文字內容與表格」，排版部分建議轉換後再自行微調。</p>
+        <h3>表格是怎麼被辨識出來的？準確嗎？</h3>
+        <p>工具會偵測連續幾行文字是否對齊成相同的多個欄位（例如同一欄的文字起始位置都差不多），符合的話就組成表格。對於欄位分明、有固定對齊的表格效果較好；欄位很不規則、儲存格有合併、或是用空白手動排版的「假表格」可能無法正確辨識，這種情況會照一般段落文字處理，建議轉換後檢查一下。</p>
         <h3>掃描檔或圖片型 PDF 可以用嗎？</h3>
-        <p>可以。這種頁面本身沒有可擷取的文字，工具會自動用 OCR（文字辨識，目前為繁體中文）把圖片上的文字辨識出來變成可編輯文字；辨識需要一點時間，且準確度會受掃描品質、字體、版面影響，建議轉換後自行校對。如果 OCR 仍無法辨識出任何文字，該頁才會改以圖片形式保留。</p>
+        <p>可以。這種頁面本身沒有可擷取的文字，工具會自動用 OCR（文字辨識，目前為繁體中文）把圖片上的文字辨識出來變成可編輯文字；辨識需要一點時間，且準確度會受掃描品質、字體、版面影響，建議轉換後自行校對。OCR 目前僅辨識文字內容，無法還原表格框線。如果 OCR 仍無法辨識出任何文字，該頁才會改以圖片形式保留。</p>
         <h3>支援哪些瀏覽器？</h3>
         <p>建議使用新版 Chrome、Edge、Safari 或 Firefox。部分舊版瀏覽器可能不支援轉換所需的功能。</p>
       </div>
@@ -562,35 +564,87 @@
       }
     }
 
+    // Gap thresholds (relative to font size) used when turning a visual line's raw
+    // text items back into words/cells: a small gap is normal word-spacing, a much
+    // larger one usually means the PDF laid the text out in separate table columns.
+    const SPACE_GAP_RATIO = 0.25;
+    const COLUMN_GAP_RATIO = 2.0;
+
     async function extractPageLines(page){
       // Group text items into visual lines by matching y-coordinate rather than
       // trusting pdf.js's hasEOL flag, which some PDF producers (e.g. Chromium's
       // own PDF export) set inconsistently and can bleed an unrelated item's
-      // font size into the wrong line.
+      // font size into the wrong line. Within each line, items are further split
+      // into "cells" wherever the horizontal gap is large enough to look like a
+      // table column boundary rather than ordinary word spacing.
       const content = await page.getTextContent();
+      const viewport = page.getViewport({ scale: 1 });
       const Y_EPS = 1.5;
-      const lines = [];
+      const rawLines = [];
       let cur = null;
       for (const item of content.items) {
         if (typeof item.str !== 'string') continue;
         const y = item.transform[5];
         const x = item.transform[4];
         const size = Math.hypot(item.transform[2], item.transform[3]) || item.height || 10;
+        const entry = { str: item.str, x, endX: x + (item.width || 0), size };
         if (cur && Math.abs(y - cur.y) <= Y_EPS) {
-          const gap = x - cur.endX;
-          if (gap > cur.size * 0.25 && cur.text && !/\s$/.test(cur.text) && item.str && !/^\s/.test(item.str)) {
-            cur.text += ' ';
-          }
-          cur.text += item.str;
-          cur.endX = x + (item.width || 0);
-          if (size > cur.size) cur.size = size;
+          cur.items.push(entry);
         } else {
-          if (cur) lines.push(cur);
-          cur = { text: item.str, y, size, endX: x + (item.width || 0) };
+          if (cur) rawLines.push(cur);
+          cur = { y, items: [entry] };
         }
       }
-      if (cur) lines.push(cur);
-      return lines.filter(l => l.text.trim() !== '');
+      if (cur) rawLines.push(cur);
+
+      const lines = rawLines.map(raw => {
+        const items = raw.items.slice().sort((a, b) => a.x - b.x);
+        const cells = [];
+        let cellCur = null;
+        let maxSize = 0;
+        for (const it of items) {
+          if (it.size > maxSize) maxSize = it.size;
+          // pdf.js sometimes represents a large blank gap (e.g. a table column gap)
+          // as its own whitespace-only item whose *width* spans the gap, rather than
+          // as spacing between two real items. Treat a wide blank item as a column
+          // break too; never start a cell from pure whitespace.
+          if (it.str.trim() === '') {
+            if (cellCur && it.width > cellCur.size * COLUMN_GAP_RATIO) {
+              cells.push(cellCur);
+              cellCur = null;
+            }
+            continue;
+          }
+          if (!cellCur) {
+            cellCur = { text: it.str, x: it.x, endX: it.endX, size: it.size };
+            continue;
+          }
+          const gap = it.x - cellCur.endX;
+          if (gap > cellCur.size * COLUMN_GAP_RATIO) {
+            cells.push(cellCur);
+            cellCur = { text: it.str, x: it.x, endX: it.endX, size: it.size };
+          } else {
+            if (gap > cellCur.size * SPACE_GAP_RATIO && cellCur.text && !/\s$/.test(cellCur.text) && it.str && !/^\s/.test(it.str)) {
+              cellCur.text += ' ';
+            }
+            cellCur.text += it.str;
+            cellCur.endX = it.endX;
+            if (it.size > cellCur.size) cellCur.size = it.size;
+          }
+        }
+        if (cellCur) cells.push(cellCur);
+        const trimmedCells = cells
+          .map(c => ({ text: c.text.trim(), x: c.x, endX: c.endX }))
+          .filter(c => c.text !== '');
+        return {
+          y: raw.y,
+          size: maxSize,
+          cells: trimmedCells,
+          text: trimmedCells.map(c => c.text).join(' ').replace(/\s+/g, ' ').trim(),
+        };
+      }).filter(l => l.text !== '');
+
+      return { lines, pageWidth: viewport.width };
     }
 
     function groupParagraphs(lines, bodySize){
@@ -620,6 +674,108 @@
       }
       flush();
       return paras;
+    }
+
+    // Detect table-like regions in a page's lines and split the page into an
+    // ordered list of blocks: normal paragraphs (text), and tables (grids of
+    // cell text). A run of >=2 consecutive lines that each have >=2 cells whose
+    // x-start positions line up into recurring columns is treated as a table;
+    // everything else goes through the existing paragraph/heading logic.
+    const MIN_TABLE_COLUMNS = 2;
+    const MIN_TABLE_ROWS = 2;
+    const COLUMN_CLUSTER_TOL = 10;
+
+    function clusterColumns(xs, tol){
+      const sorted = xs.slice().sort((a, b) => a - b);
+      const clusters = [];
+      for (const x of sorted) {
+        const last = clusters[clusters.length - 1];
+        if (last && x - last.max <= tol) {
+          last.sum += x; last.count += 1; last.max = x;
+        } else {
+          clusters.push({ sum: x, count: 1, max: x });
+        }
+      }
+      return clusters.map(c => c.sum / c.count);
+    }
+
+    function buildPageBlocks(lines, bodySize, pageWidth){
+      const blocks = [];
+      let paraBuffer = [];
+      const flushParas = () => {
+        if (!paraBuffer.length) return;
+        for (const p of groupParagraphs(paraBuffer, bodySize)) {
+          blocks.push({ type: 'para', text: p.text, size: p.size });
+        }
+        paraBuffer = [];
+      };
+
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i];
+        if (line.cells.length >= MIN_TABLE_COLUMNS) {
+          let j = i;
+          while (j < lines.length && lines[j].cells.length >= MIN_TABLE_COLUMNS) j++;
+          const run = lines.slice(i, j);
+          const table = run.length >= MIN_TABLE_ROWS ? buildTableBlock(run, bodySize, pageWidth) : null;
+          if (table) {
+            flushParas();
+            blocks.push(table);
+            i = j;
+            continue;
+          }
+        }
+        paraBuffer.push(line);
+        i++;
+      }
+      flushParas();
+      return blocks;
+    }
+
+    function buildTableBlock(run, bodySize, pageWidth){
+      const allStarts = [];
+      for (const r of run) for (const c of r.cells) allStarts.push(c.x);
+      const tol = Math.max(COLUMN_CLUSTER_TOL, bodySize);
+      const colCenters = clusterColumns(allStarts, tol);
+      if (colCenters.length < MIN_TABLE_COLUMNS) return null;
+
+      const bounds = [];
+      for (let k = 0; k < colCenters.length - 1; k++) bounds.push((colCenters[k] + colCenters[k + 1]) / 2);
+      const colIndexFor = (x) => {
+        let idx = 0;
+        while (idx < bounds.length && x >= bounds[idx]) idx++;
+        return idx;
+      };
+
+      const rows = run.map(r => {
+        const row = new Array(colCenters.length).fill('');
+        for (const c of r.cells) {
+          const idx = colIndexFor(c.x);
+          row[idx] = row[idx] ? `${row[idx]} ${c.text}` : c.text;
+        }
+        return row;
+      });
+
+      const widths = colCenters.map((c, idx) => {
+        const start = idx === 0 ? Math.max(0, c - bodySize * 2) : bounds[idx - 1];
+        const end = idx < bounds.length ? bounds[idx] : (pageWidth || c + bodySize * 10);
+        return Math.max(end - start, bodySize);
+      });
+      const totalW = widths.reduce((a, b) => a + b, 0) || 1;
+      const widthPct = widths.map(w => Math.max(5, Math.round((w / totalW) * 100)));
+
+      return { type: 'table', rows, widthPct };
+    }
+
+    function buildTableFromBlock(block){
+      const { Table, TableRow, TableCell, Paragraph, TextRun, WidthType } = window.docx;
+      const rows = block.rows.map(rowCells => new TableRow({
+        children: rowCells.map((text, idx) => new TableCell({
+          width: { size: block.widthPct[idx] || Math.round(100 / rowCells.length), type: WidthType.PERCENTAGE },
+          children: [new Paragraph({ children: [new TextRun(text)] })],
+        })),
+      }));
+      return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows });
     }
 
     function dataUrlToBytes(dataUrl){
@@ -708,13 +864,15 @@
 
         // Pass 1: extract lines for every page, figure out the document's body font size.
         const perPageLines = [];
+        const perPageWidth = [];
         const allSizes = [];
         for (let i = 1; i <= n; i++) {
           progressText.textContent = `讀取文字中… 第 ${i} / ${n} 頁`;
           progressBar.style.width = `${Math.round(((i - 1) / n) * 50)}%`;
           const page = await currentPdf.getPage(i);
-          const lines = await extractPageLines(page);
+          const { lines, pageWidth } = await extractPageLines(page);
           perPageLines.push(lines);
+          perPageWidth.push(pageWidth);
           for (const l of lines) allSizes.push(Math.round(l.size * 2) / 2);
           page.cleanup && page.cleanup();
           await new Promise(r => setTimeout(r, 0));
@@ -735,25 +893,35 @@
         let anyText = false;
         let anyOcr = false;
         let anyImageFallback = false;
+        let anyTable = false;
         for (let i = 1; i <= n; i++) {
           progressBar.style.width = `${50 + Math.round(((i - 1) / n) * 45)}%`;
 
           const lines = perPageLines[i - 1];
-          const paras = groupParagraphs(lines, bodySize);
+          const blocks = buildPageBlocks(lines, bodySize, perPageWidth[i - 1]);
           const pageBreakBefore = i > 1;
 
-          if (paras.length) {
+          if (blocks.length) {
             progressText.textContent = `組成 Word 中… 第 ${i} / ${n} 頁`;
             anyText = true;
-            paras.forEach((p, idx) => {
-              let heading;
-              if (p.size >= bodySize * 1.8) heading = HeadingLevel.HEADING_1;
-              else if (p.size >= bodySize * 1.15) heading = HeadingLevel.HEADING_2;
-              children.push(new Paragraph({
-                heading,
-                pageBreakBefore: pageBreakBefore && idx === 0,
-                children: [new TextRun(p.text)],
-              }));
+            blocks.forEach((block, idx) => {
+              const isFirst = pageBreakBefore && idx === 0;
+              if (block.type === 'table') {
+                anyTable = true;
+                if (isFirst) {
+                  children.push(new Paragraph({ pageBreakBefore: true, children: [] }));
+                }
+                children.push(buildTableFromBlock(block));
+              } else {
+                let heading;
+                if (block.size >= bodySize * 1.8) heading = HeadingLevel.HEADING_1;
+                else if (block.size >= bodySize * 1.15) heading = HeadingLevel.HEADING_2;
+                children.push(new Paragraph({
+                  heading,
+                  pageBreakBefore: isFirst,
+                  children: [new TextRun(block.text)],
+                }));
+              }
             });
           } else {
             progressText.textContent = `此頁無文字層，OCR 辨識中… 第 ${i} / ${n} 頁`;
@@ -819,6 +987,7 @@
         if (anyOcr && anyImageFallback) note = '（部分頁面經 OCR 辨識為文字，部分無法辨識已保留為圖片）';
         else if (anyOcr) note = '（部分頁面經 OCR 自動辨識為文字，可能有辨識誤差，建議校對）';
         else if (!anyText) note = '（未偵測到可擷取文字，內容以圖片保留）';
+        if (anyTable) note += '（含偵測到的表格）';
         resultSub.textContent = `${fileName} · 共 ${n} 頁${note}`;
         result.classList.add('show');
       } catch (err) {
